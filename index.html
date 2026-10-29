@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>無盡迴廊：隨機文字冒險</title>
+<style>
+:root{--bg:#0a0c11;--panel:rgba(16,19,27,.88);--line:#262b38;--text:#dcd6c8;--dim:#857f71;--accent:#d4a24c;--danger:#e0605a;--good:#6fcf8e;--magic:#8fa8ff;--npc:#e8c98a;--item:#7fd6d0}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(ellipse at 50% -10%,#1d2230 0%,var(--bg) 65%);color:var(--text);font-family:"Noto Serif TC","Noto Serif CJK TC","Source Han Serif TC","PingFang TC","Microsoft JhengHei",serif;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.65) 100%);z-index:5}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.4);height:58px}
+h1{font-size:20px;margin:0;color:var(--accent);letter-spacing:.18em;text-shadow:0 0 14px rgba(212,162,76,.45);white-space:nowrap}
+h1 small{font-size:12px;color:var(--dim);letter-spacing:.05em;margin-left:10px;text-shadow:none}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:#171b27;color:var(--text);border:1px solid var(--line);padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:14px;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;padding:14px 20px;max-width:1240px;margin:0 auto;height:calc(100vh - 58px)}
+#story{display:flex;flex-direction:column;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 0 40px rgba(0,0,0,.5)}
+#loc{padding:10px 18px;border-bottom:1px solid var(--line);color:var(--accent);font-size:15px;letter-spacing:.1em;display:flex;justify-content:space-between}
+#loc span:last-child{color:var(--dim);font-size:13px}
+#log{flex:1;overflow-y:auto;padding:16px 22px;line-height:1.95;font-size:16.5px;cursor:default}
+#log p{margin:0 0 .55em;white-space:pre-wrap}
+#log::-webkit-scrollbar,aside::-webkit-scrollbar{width:8px}#log::-webkit-scrollbar-thumb,aside::-webkit-scrollbar-thumb{background:#2a3040;border-radius:4px}
+.sys{color:var(--dim);font-size:14px}.dmg{color:var(--danger)}.heal{color:var(--good)}.npc{color:var(--npc)}.item{color:var(--item)}.cmd{color:var(--magic);font-size:14px;opacity:.85}.warn{color:#f0a24a;font-weight:bold}
+.special{color:var(--accent)}
+.locname{color:var(--accent);font-weight:bold;letter-spacing:.1em;margin-top:.8em!important}
+.title{color:var(--accent);font-size:22px;text-align:center;letter-spacing:.3em;margin:.6em 0!important;text-shadow:0 0 18px rgba(212,162,76,.5)}
+.ending{border:1px solid var(--accent);padding:12px 16px;border-radius:8px;background:rgba(0,0,0,.3)}
+.boss{color:#ff7a6e;font-weight:bold}
+.cursor::after{content:"▋";animation:blink 1s steps(1) infinite;color:var(--accent);margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+#choices{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-top:1px solid var(--line);min-height:60px;align-content:flex-start;max-height:34vh;overflow-y:auto}
+.choice{background:linear-gradient(#1a1f2d,#131722);color:var(--text);border:1px solid #333a4d;padding:7px 14px;border-radius:7px;cursor:pointer;font:inherit;font-size:15px;transition:.15s;animation:fade .3s ease}
+.choice:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+.choice .k{color:var(--dim);margin-right:6px;font-size:12px}
+.choice.danger{border-color:#5a2a2a}.choice.special{border-color:#6b5a3a;border-color:var(--accent)}.choice.move{border-style:dashed}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+.waiting{color:var(--dim);font-size:13px;padding:6px}
+#cmdbar{display:flex;gap:8px;padding:0 16px 14px}
+#cmd{flex:1;background:#0b0e15;border:1px solid var(--line);color:var(--text);padding:8px 12px;border-radius:6px;font:inherit;font-size:15px}
+#cmd:focus{outline:none;border-color:var(--accent)}
+aside{display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:0;padding-right:2px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card h3{margin:0 0 8px;font-size:14px;color:var(--accent);letter-spacing:.12em;font-weight:normal}
+.hero{font-size:15px}.hero b{color:var(--npc)}
+.bar{height:10px;background:#2a1517;border-radius:5px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#9e2b27,#e0605a);transition:width .4s}
+.bar.xp{height:5px;background:#16202a}.bar.xp i{background:linear-gradient(90deg,#35608f,var(--magic))}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:13.5px;margin-top:8px;color:#bdb6a6}
+.stats b{color:var(--text);font-weight:normal}
+#inv{list-style:none;margin:0;padding:0;font-size:14px}
+#inv li{padding:4px 6px;border-radius:5px;cursor:pointer;display:flex;justify-content:space-between}
+#inv li:hover{background:#1c2130;color:var(--item)}
+#inv li em{color:var(--dim);font-style:normal;font-size:12px}
+.empty{color:var(--dim);font-size:13px}
+#map{display:grid;gap:0;justify-content:center;padding:4px 0}
+#map div{width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px}
+#map .rm{background:#232938;border:1px solid #3a4256;border-radius:4px}
+#map .rm.seen{background:#14171f;border-style:dashed;color:var(--dim)}
+#map .rm.cur{background:var(--accent);border-color:var(--accent);box-shadow:0 0 10px var(--accent);color:#000}
+#map .h{height:22px}#map .h::after{content:"";width:100%;height:2px;background:#3a4256}
+#map .v::after{content:"";width:2px;height:100%;background:#3a4256}
+.seed{font-family:ui-monospace,Consolas,monospace;color:var(--magic);word-break:break-all}
+.small{font-size:12.5px;color:var(--dim);line-height:1.6}
+#endings{font-size:13px;line-height:1.8}#endings span{display:inline-block;margin-right:8px}#endings .got{color:var(--accent)}#endings .no{color:#4a4f5c}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:10}
+.modal.show{display:flex}
+.modal .box{background:#121620;border:1px solid var(--accent);border-radius:12px;padding:22px 26px;width:min(440px,92vw);box-shadow:0 0 40px rgba(0,0,0,.8)}
+.modal h2{margin:0 0 14px;color:var(--accent);font-size:19px;letter-spacing:.15em;font-weight:normal}
+.modal label{display:block;font-size:14px;margin:10px 0 4px;color:#bdb6a6}
+.modal input,.modal select{width:100%;background:#0b0e15;border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:6px;font:inherit}
+.modal .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.help{font-size:14px;line-height:1.85}.help code{color:var(--magic);background:#0b0e15;padding:1px 6px;border-radius:4px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1c2232;border:1px solid var(--accent);color:var(--accent);padding:8px 18px;border-radius:20px;opacity:0;transition:.3s;z-index:20;pointer-events:none}
+#toast.show{opacity:1}
+#errbox{display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);max-width:92vw;background:#3a1416;border:1px solid #e0605a;color:#ffd6d3;padding:8px 14px;border-radius:8px;z-index:30;font-size:13px;white-space:pre-wrap;cursor:pointer}
+@media (max-width:860px){body{overflow:auto}main{grid-template-columns:1fr;height:auto}#story{height:78vh}h1 small{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>無盡迴廊<small>每一次冒險都獨一無二</small></h1>
+  <div class="tools">
+    <button class="btn" id="bNew" type="button" onclick="return window.__taNew?window.__taNew():false">✦ 新冒險</button>
+    <button class="btn" id="bCustom" type="button">自訂種子</button>
+    <button class="btn" id="bSave" type="button">存檔</button>
+    <button class="btn" id="bLoad" type="button">讀檔</button>
+    <button class="btn" id="bSpeed" type="button">文字速度：正常</button>
+    <button class="btn" id="bHelp" type="button">說明</button>
+  </div>
+</header>
+<main>
+  <section id="story">
+    <div id="loc"><span id="locName">無盡迴廊</span><span id="locInfo"></span></div>
+    <div id="log" title="點擊可略過打字效果"></div>
+    <div id="choices"></div>
+    <div id="cmdbar">
+      <input id="cmd" placeholder="輸入指令，例如：前往 北、查看、背包、使用 藥水、說明（或輸入數字選擇選項）">
+      <button class="btn" type="button" id="bRun">執行</button>
+    </div>
+  </section>
+  <aside>
+    <div class="card"><h3>角色</h3><div id="hero" class="hero"></div></div>
+    <div class="card"><h3>背包</h3><ul id="inv"></ul></div>
+    <div class="card"><h3>地圖</h3><div id="map"></div><div class="small" id="mapNote"></div></div>
+    <div class="card"><h3>種子</h3><div class="seed" id="seedShow">—</div><div class="small">相同種子會生成相同的世界與事件。點擊種子可複製。</div></div>
+    <div class="card"><h3>結局收集</h3><div id="endings"></div></div>
+  </aside>
+</main>
+
+<div class="modal" id="mNew"><div class="box">
+  <h2>✦ 展開新的冒險</h2>
+  <label>種子（留空則隨機，直接按「出發！」即可開始）</label>
+  <input id="inSeed" placeholder="例如：DRAGON42">
+  <label>世界</label>
+  <select id="inWorld"></select>
+  <label>職業</label>
+  <select id="inRole"></select>
+  <div class="small" style="margin-top:8px">指定世界或職業時，種子會自動加上後綴，方便完整重現同一場冒險。</div>
+  <div class="row"><button class="btn" id="mCancel" type="button">取消</button><button class="btn" id="mGo" type="button">出發！</button></div>
+</div></div>
+
+<div class="modal" id="mHelp"><div class="box help">
+  <h2>冒險指南</h2>
+  每場冒險都由<b>種子</b>隨機組合出世界、主角、地圖、敵人、人物與事件。<br>
+  <b>目標：</b>找到通往首領房間的鑰匙，擊敗最終首領——或者，選擇另一條路。共有 6 種結局。<br>
+  <b>操作：</b>點擊下方選項按鈕，或輸入指令：<br>
+  <code>前往 北</code> / <code>北</code> 移動　<code>查看</code> 觀察四周　<code>背包</code> 查看物品<br>
+  <code>使用 物品名</code>　<code>拿取</code>　<code>交談</code>　<code>攻擊</code> <code>防禦</code> <code>技能</code> <code>逃跑</code><br>
+  <code>狀態</code>　<code>存檔</code>　<code>讀檔</code>　輸入數字或按鍵盤 1–9 可直接選擇選項。<br>
+  <b>小技巧：</b>敵人「蓄力」時記得防禦；向人物打聽情報能得到線索；某些信物能在最終戰中改變結局。
+  <div class="row"><button class="btn" id="hClose" type="button">了解</button></div>
+</div></div>
+<div id="toast"></div>
+<div id="errbox" title="點擊關閉"></div>
+
+<script>
+'use strict';
+/* ========== 錯誤顯示與安全儲存（沙盒 iframe / file:// / 停用儲存時的後備） ========== */
+function showError(msg){try{var b=document.getElementById('errbox');if(!b)return;b.textContent='⚠ 發生錯誤：'+msg+'（點擊關閉）';b.style.display='block';b.onclick=function(){b.style.display='none';};}catch(e){}}
+window.addEventListener('error',function(e){showError((e&&e.message)||'未知錯誤');});
+window.addEventListener('unhandledrejection',function(e){showError(String(e&&e.reason));});
+var store=(function(){var mem={},ls=null;try{ls=window.localStorage;var k='__ta_test__';ls.setItem(k,'1');ls.removeItem(k);}catch(e){ls=null;}
+  return {persistent:function(){return !!ls;},
+    get:function(k){try{if(ls){var v=ls.getItem(k);if(v!==null)return v;}}catch(e){}return Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null;},
+    set:function(k,v){v=String(v);mem[k]=v;try{if(ls)ls.setItem(k,v);}catch(e){}}};})();
+function copyText(t){
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast('種子已複製');},function(){fallbackCopy(t);});return;}}catch(e){}
+  fallbackCopy(t);}
+function fallbackCopy(t){var ok=false;try{var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');document.body.removeChild(ta);}catch(e){}
+  toast(ok?'種子已複製':'種子：'+t+'（請手動複製）');}
+/* ========== 亂數 ========== */
+function hashSeed(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19;}h=Math.imul(h^(h>>>16),2246822507);h=Math.imul(h^(h>>>13),3266489909);return (h^(h>>>16))>>>0;}
+class RNG{constructor(s){this.s=s>>>0;}
+  next(){let t=this.s=(this.s+0x6D2B79F5)>>>0;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;}
+  int(a,b){return a+Math.floor(this.next()*(b-a+1));}
+  pick(a){return a[Math.floor(this.next()*a.length)];}
+  chance(p){return this.next()<p;}
+  shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(this.next()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}}
+function randomSeed(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+
+/* ========== 世界資料 ========== */
+const R2=s=>s.map(x=>{const [n,d]=x.split('|');return {n,d};});
+const WORLDS=[
+{id:'ruins',name:'古代遺跡',accent:'#d4a24c',places:['阿卡薩','奈瑟拉','烏瑪爾','塞拉諾'],
+ title:p=>`沉睡的${p}遺跡`,
+ intro:p=>[`一場地震讓黃沙下沉睡千年的${p}遺跡重見天日。`,`傳說遺跡深處封印著能令死者復生的「永恆之心」。`],
+ start:'遺跡入口|半埋在沙中的巨大石門敞開著，冰冷的氣流從黑暗深處吹出，帶著塵土與香料的味道。',
+ rooms:R2(['崩塌的前廳|碎裂的石柱散落一地，牆上褪色的壁畫描繪著一位頭戴日冕的君王。','星象大廳|穹頂刻著早已消失的星座，微光從裂縫灑落，像一場靜止的流星雨。','祭司的居所|陶罐與莎草紙堆滿角落，空氣中殘留著焚香的氣味。','地下水道|及膝的黑水緩緩流動，水面下似乎有什麼東西擦過你的腳踝。','萬骨堂|牆面由無數頭骨砌成，空洞的眼窩彷彿在注視著你。','鍍金走廊|兩側的金箔在火光下閃爍，地板上有一道道拖行的痕跡。','倒塌的圖書室|石架傾倒，泥板文書碎了一地，只有幾塊還能辨認。','機關迴廊|牆上佈滿細小的孔洞，地磚的顏色深淺不一。','獻祭之井|一口深不見底的圓井，井沿刻滿了祈求與詛咒。','沉沒的花園|枯死的棕櫚圍繞著乾涸的水池，池底散落著古老的錢幣。','工匠工坊|未完成的雕像靜靜佇立，工具還擱在原處，彷彿工匠剛剛離開。','守衛營房|生鏽的長矛靠在牆邊，床鋪上覆著厚厚的沙。','月光天井|一束月光從高處的天窗照下，照亮中央的石製日晷。','回音石窟|你的每一步都在洞窟裡迴盪成好幾個腳步聲。','王者之墓前室|兩尊胡狼頭雕像守在拱門兩側，地上散落著陪葬品。','香料倉庫|破裂的陶甕裡流出早已乾燥的香料，氣味依舊嗆鼻。']),
+ boss:{room:'太陽王的墓室|巨大的黃金石棺佇立在中央，牆上的日輪浮雕發出不祥的紅光。',n:'不朽的太陽王',hp:78,atk:10,def:4,
+   intro:['石棺的蓋子轟然滑開，一具纏著金色裹布的乾屍緩緩坐起。','「凡人……你竟敢踏入朕的永眠之地。永恆之心是朕的！」'],
+   half:'太陽王的裹布燃起烈焰：「朕在千年前就已征服死亡！」',charge:'高舉權杖，日輪浮雕匯聚出熾熱的光芒！',defeat:'太陽王的身軀化為金色的沙，隨風散去，只留下一顆緩緩跳動的紅色寶石。',
+   peace:'太陽王看著石板上的文字，乾枯的手顫抖了起來。「這是……朕的妻子留下的話？」他放下權杖，「原來她一直在等朕安息。」'},
+ enemies:[{n:'石像守衛',hp:18,atk:5,def:3,d:'石塊摩擦的聲音中，一尊石像邁出了沉重的步伐。'},{n:'巨型沙蠍',hp:14,atk:6,def:1,d:'牠高舉的尾鉤滴著綠色毒液。'},{n:'木乃伊僕從',hp:16,atk:5,def:2,d:'鬆脫的裹布下露出乾枯的手臂。'},{n:'貪婪的盜墓者',hp:15,atk:6,def:1,d:'他舉起彎刀：「這裡的寶藏全是我的！」'},{n:'詛咒之影',hp:12,atk:7,def:0,d:'一團沒有實體的黑影在牆上游移。'}],
+ npcs:[{n:'迷途的考古學家',d:'她推了推破掉一邊鏡片的眼鏡，手上的火把快燒完了。',hi:'「謝天謝地，終於有活人了！」',lore:'「壁畫說太陽王為了永生，把整座城的子民都獻祭了。」',want:'考古學家的筆記本',ask:'「我的筆記本弄丟了，裡面有我十年的研究……」'},
+   {n:'被詛咒的祭司亡魂',d:'半透明的身影漂浮在半空，眼神哀傷。',hi:'「旅人啊……你聽得見我的聲音嗎？」',lore:'「太陽王的王后臨死前留下一塊石板，那是唯一能讓他安息的話語。」',want:'祭司的骨笛',ask:'「找回我的骨笛，我才能吹奏送魂之曲，從這裡解脫。」'},
+   {n:'老盜墓人',d:'滿臉皺紋的老人坐在火堆邊，腰間掛著一大串鑰匙。',hi:'「嘿嘿，又一個來送死的年輕人。」',lore:'「我在這裡挖了四十年，學到一件事：別碰會發光的東西。」',want:'褪色的家族徽章',ask:'「我年輕時把家族徽章弄丟在這裡，那是我爹留給我的……」'},
+   {n:'沙漠商隊的少年',d:'少年抱著膝蓋縮在角落，臉上沾滿沙土。',hi:'「你、你不是那些會動的石像吧？」',lore:'「我們的商隊被沙暴困住，大人們都進來躲……然後就沒再出來了。」',want:'商隊的銅鈴',ask:'「我的銅鈴不見了，搖響它，商隊的駱駝就會找到我們。」'}],
+ items:{potion:'草藥膏',big:'不死鳥之羽',bomb:'火藥罐',elixir:'聖甲蟲護符',weapons:['青銅彎刀','黑曜石長矛'],armors:['亞麻護甲','祭司的石護腕'],key:'太陽石鑰',treasure:'黃金面具',token:'王后的石板',artifact:'永恆之心'},
+ villain:'太陽王正渴望藉由永恆之心復活，把整片沙漠化為他的不死帝國',exit:'通往地表的裂口',shrine:'刻滿象形文字的祭壇',merchant:'戴著面紗的流浪商人',
+ traps:['腳下的石板突然下陷，四周響起機關轉動的聲音！','牆縫中傳來喀啦一聲——一排毒箭正對準你！','天花板開始落下細沙，整條通道似乎要塌了！'],
+ lore:['「遺跡的機關到現在還在運作，小心腳下。」','「入夜後，石像會自己換位置。」','「這座城曾經比任何王國都繁榮。」']},
+
+{id:'cyber',name:'賽博龐克城市',accent:'#ff3fa4',places:['新九龍','零號區','夜港','霓虹灣'],
+ title:p=>`霓虹之下的${p}`,
+ intro:p=>[`酸雨永不停歇的${p}，摩天樓的全息廣告映照著底層街道的泥濘。`,`泰坦企業的頂層藏著一個名為「奇點核心」的秘密計畫。`],
+ start:'雨中的街角|霓虹招牌在積水中倒映出扭曲的光，遠方傳來警用無人機的嗡鳴。',
+ rooms:R2(['霓虹小巷|狹窄的巷子裡掛滿閃爍的漢字招牌，空氣中有烤肉串和機油的味道。','地下義體診所|手術燈下擺著各式各樣的機械手臂，消毒水的氣味刺鼻。','廢棄地鐵站|列車早已停駛，月台上的電子看板還在重播十年前的新聞。','黑市拍賣場|戴著面具的買家低聲競標，玻璃櫃裡的商品來路不明。','資料中心機房|成排的伺服器發出低沉的嗡鳴，冷氣從地板縫隙竄出。','雨中的天橋|天橋下是川流不息的懸浮車，雨水打在你的臉上。','深夜拉麵攤|蒸氣從湯鍋升起，收音機播著老式的城市流行音樂。','企業大廈大廳|大理石地板一塵不染，全息接待員的微笑讓人不寒而慄。','無人工廠|機械手臂在黑暗中規律地揮動，生產線不知道在製造什麼。','天台停機坪|狂風呼嘯，整座城市的燈火在腳下延伸到天際。','巨型看板背後|鋼架之間堆滿流浪漢的紙箱，廣告的光線一陣紅一陣藍。','地下格鬥場|鐵籠周圍的觀眾在吼叫，空氣中瀰漫著汗水與血的味道。','污水處理廠|發著螢光的污水在管道中奔流，腳下的鐵網搖搖晃晃。','舊時代網咖|一排排舊螢幕還亮著，有些人戴著頭盔一動不動地坐著。','貨櫃碼頭|堆疊如山的貨櫃之間，起重機的探照燈來回掃射。','電子寺廟|機械僧侶敲著數位木魚，線香的煙霧中飄著程式碼。']),
+ boss:{room:'泰坦大廈頂層・核心伺服器室|巨大的量子主機懸浮在房間中央，無數光纖像血管般延伸向整座城市。',n:'泰坦執行長・數位化身',hp:80,atk:10,def:5,
+   intro:['主機的光芒凝聚成一個西裝筆挺的人形，臉上掛著完美而空洞的微笑。','「歡迎，小蟲子。再過三分鐘，這座城市的每一顆腦袋都將屬於我。」'],
+   half:'化身的影像開始閃爍雜訊：「錯誤……不可能……我的演算法是完美的！」',charge:'的周圍浮現無數資料流，整個房間的螢幕同時發出刺眼的白光！',defeat:'數位化身在一陣刺耳的雜訊中崩解，主機中央彈出一枚發著藍光的晶體。',
+   peace:'你上傳自由協定的原始碼。化身的表情第一次出現猶豫：「這段程式……是我還是人類時寫的。」他慢慢放下手，「也許……我早就忘了為什麼要開始這一切。」'},
+ enemies:[{n:'企業保全無人機',hp:13,atk:6,def:2,d:'紅色掃描光束鎖定了你。'},{n:'義體幫派份子',hp:17,atk:6,def:1,d:'他的機械手臂發出液壓的嘶嘶聲。'},{n:'失控的清潔機器人',hp:15,atk:5,def:3,d:'它的旋轉刷頭被改裝成了電鋸。'},{n:'賞金獵犬',hp:14,atk:7,def:1,d:'一隻機械獵犬，眼睛閃著紅光。'},{n:'網路幽靈',hp:11,atk:7,def:0,d:'一個由雜訊構成的人影從螢幕裡爬了出來。'}],
+ npcs:[{n:'地下義體醫生',d:'她的雙手都是精密的機械義肢，正在擦拭手術刀。',hi:'「受傷了？先說好，我只收現金。」',lore:'「泰坦企業最近在大量收購腦機介面，這不是好兆頭。」',want:'遺失的記憶晶片',ask:'「我的記憶晶片被偷了，上面存著我女兒的回憶……」'},
+   {n:'逃亡的仿生人',d:'他的人造皮膚有一道裂痕，露出底下的線路。',hi:'「別緊張，我不是企業的人。我跟你一樣，在逃。」',lore:'「執行長早就把自己上傳了。但他寫過一段叫『自由協定』的程式，那是他還有良心的時候。」',want:'仿生人的身分證',ask:'「我的身分證被扣在某處，沒有它，我隨時會被當成廢鐵回收。」'},
+   {n:'街頭情報販子',d:'戴著反光眼鏡的男人倚在牆邊，手指飛快地在空氣中滑動。',hi:'「情報可不便宜，不過看你順眼，第一條免費。」',lore:'「這城市裡，資料比子彈還致命。」',want:'加密的硬碟',ask:'「幫我找回一顆加密硬碟，我給你一個好東西。」'},
+   {n:'拉麵攤老闆',d:'光頭的老人一邊攪著湯，一邊哼著歌。',hi:'「來，先喝碗熱湯，外面雨大。」',lore:'「我在這條街賣了五十年麵，看過太多企業起起落落。」',want:'老闆的祖傳湯勺',ask:'「我那支祖傳湯勺被小混混搶走了，沒有它，湯就是少了一味。」'}],
+ items:{potion:'奈米修復針',big:'軍用興奮劑',bomb:'EMP 手雷',elixir:'神經強化晶片',weapons:['單分子刀','電漿手槍'],armors:['防彈風衣','碳纖維皮下裝甲'],key:'最高權限金鑰卡',treasure:'加密貨幣冷錢包',token:'自由協定原始碼',artifact:'奇點核心'},
+ villain:'泰坦企業的執行長準備用奇點核心把全城市民的意識上傳、永遠控制',exit:'通往城外的走私隧道',shrine:'電子神龕',merchant:'改裝販賣機旁的黑市掮客',
+ traps:['地上的雷射網突然啟動，紅色光線朝你掃來！','一道電流沿著積水竄向你的腳邊！','警報大作，自動砲塔從天花板降了下來！'],
+ lore:['「別相信任何一台會說『祝您有美好的一天』的機器。」','「頂層的電梯需要最高權限才能啟動。」','「雨已經下了三年，沒有人記得晴天的樣子。」']},
+
+{id:'forest',name:'魔法森林',accent:'#6fd18a',places:['艾爾溫','月影','翡翠','銀霧'],
+ title:p=>`${p}之森的低語`,
+ intro:p=>[`${p}之森的樹木一夜之間長出了黑色的荊棘，林中的動物紛紛逃離。`,`據說森林深處的世界樹守護著一顆「生命之種」。`],
+ start:'森林入口的老橡樹下|巨大的橡樹張開枝葉，樹根間的小徑通往霧氣瀰漫的深處。',
+ rooms:R2(['螢火蟲小徑|成千上萬的螢火蟲在你身邊飛舞，照亮了蜿蜒的小路。','古樹的樹洞|空心的巨木內部寬敞得像個房間，牆上長著發光的苔蘚。','蘑菇圈|一圈色彩斑斕的蘑菇圍成完美的圓，傳說踏進去會被帶到妖精國度。','精靈的廢棄樹屋|藤蔓纏繞的木屋懸在半空，風鈴在風中叮噹作響。','霧氣沼澤|濃霧中傳來咕嚕咕嚕的冒泡聲，腳下的泥土又軟又黏。','月光湖畔|湖面像鏡子一樣平靜，倒映著不屬於這個季節的星空。','荊棘迷宮|黑色的荊棘高過頭頂，每條路看起來都一樣。','會說話的石橋|石橋上的青苔排列成一張打瞌睡的臉。','魔女的藥草園|奇異的植物在此生長，有些花朵會轉過頭來看你。','狼群的巢穴|地上滿是骨頭和抓痕，空氣中有濃重的野獸氣味。','水晶洞穴|洞壁上長滿紫色水晶，發出輕柔的嗡鳴。','落葉墓園|厚厚的落葉下露出一塊塊長滿青苔的墓碑。','獨角獸之泉|清澈的泉水汩汩湧出，岸邊有銀白色的蹄印。','倒流的瀑布|瀑布的水由下往上流，水珠在空中閃閃發亮。','枯萎之地|這裡的一切都失去了顏色，灰白的樹木像骨頭一樣。','歌唱的竹林|風吹過竹林時，會發出如同合唱般的旋律。']),
+ boss:{room:'世界樹的根心|巨大的樹根盤繞成一座大廳，黑色的脈絡在樹皮下像心臟一樣搏動。',n:'腐化的森林女王',hp:76,atk:10,def:4,
+   intro:['樹根之間緩緩升起一個身影——她的長髮是枯藤，王冠上開滿黑色的花。','「又一個想奪走生命之種的人類？那就成為我森林的養分吧。」'],
+   half:'女王的黑花紛紛凋落：「好痛……為什麼……我只是想保護這片森林……」',charge:'張開雙臂，無數毒棘從地底竄出，匯聚成巨大的尖刺！',defeat:'腐化從女王身上褪去，她化為一陣花瓣飄散，原地留下一顆散發溫暖光芒的種子。',
+   peace:'你輕聲唱起春之歌謠。女王愣住了，黑色的荊棘一根根枯萎，露出底下嫩綠的新芽。「這首歌……是我還是小樹苗時，森林為我唱的。」'},
+ enemies:[{n:'荊棘狼',hp:15,atk:6,def:1,d:'牠的毛皮長滿了黑色的尖刺。'},{n:'毒蘑菇怪',hp:13,atk:5,def:2,d:'它搖晃著巨大的傘蓋，噴出紫色的孢子。'},{n:'迷霧妖精',hp:11,atk:7,def:0,d:'咯咯的笑聲從四面八方傳來。'},{n:'樹人哨兵',hp:19,atk:5,def:3,d:'一棵大樹突然睜開了眼睛。'},{n:'暗影烏鴉群',hp:12,atk:6,def:1,d:'上百隻黑鴉同時振翅，遮蔽了天空。'}],
+ npcs:[{n:'迷路的小精靈',d:'一個巴掌大的精靈坐在蘑菇上哭泣，翅膀上沾著露水。',hi:'「嗚嗚……你、你是好人嗎？」',lore:'「女王以前很溫柔的，她會讓花在冬天開放。」',want:'小精靈的銀鈴',ask:'「我的銀鈴不見了，沒有它我找不到回家的路……」'},
+   {n:'隱居的老魔女',d:'駝背的老婦人攪拌著冒泡的大鍋，身邊趴著一隻打呵欠的蟾蜍。',hi:'「呵呵，好久沒有客人了。要喝杯茶嗎？裡面只有一點點毒。」',lore:'「女王是被詛咒的，不是天生邪惡。古老的『春之歌謠』或許能喚醒她。」',want:'魔女的水晶球',ask:'「我的水晶球滾到森林裡去了，沒有它我什麼都看不見。」'},
+   {n:'會說話的狐狸',d:'一隻九條尾巴的白狐瞇著眼打量你。',hi:'「人類，你身上有冒險的氣味。」',lore:'「這座森林有自己的意志，它會記得每個傷害過它的人。」',want:'狐狸的尾巴緞帶',ask:'「我最喜歡的緞帶被風吹走了，幫我找回來，我就欠你一個人情。」'},
+   {n:'樹精長老',d:'一位皮膚如樹皮的老者，鬍子是垂落的青苔。',hi:'「孩子……森林在哭泣，你聽見了嗎？」',lore:'「世界樹若是死去，整片大陸的生命都會凋零。」',want:'長老的橡實',ask:'「我的橡實被松鼠偷走了，那是下一代樹精的希望。」'}],
+ items:{potion:'月光露水',big:'鳳凰花蜜',bomb:'爆裂種子',elixir:'世界樹嫩葉',weapons:['銀葉短劍','橡木魔杖'],armors:['苔蘚斗篷','樹皮鎧甲'],key:'翡翠藤蔓鑰匙',treasure:'精靈王冠',token:'春之歌謠',artifact:'生命之種'},
+ villain:'森林女王被腐化之力吞噬，打算用生命之種讓整片大陸長滿毒棘',exit:'森林邊緣的古老石門',shrine:'長滿花朵的女神像',merchant:'背著大包袱的地精商人',
+ traps:['你踩到了一根藤蔓，它突然纏住你的腳踝往上拉！','一片美麗的花叢噴出了催眠花粉！','地面突然塌陷，下面是滿是尖刺的坑洞！'],
+ lore:['「別吃發光的蘑菇，除非你想和樹說話一整天。」','「月圓之夜，湖裡會映出你最想見的人。」','「荊棘是從世界樹的根部開始蔓延的。」']},
+
+{id:'space',name:'太空站',accent:'#5ec8ff',places:['天琴座七號','伊卡洛斯','普羅米修斯','奧德賽'],
+ title:p=>`軌道站「${p}」`,
+ intro:p=>[`深空研究站「${p}」在七十二小時前失去了所有聯繫。`,`最後一則訊息只有一句話：「別讓它孵化。」`],
+ start:'冷凍睡眠艙|你從冷凍艙中醒來，警報的紅光一閃一閃，其他艙位全都空了。',
+ rooms:R2(['無重力走廊|你的身體輕飄飄地浮起，散落的工具在空中緩緩旋轉。','水耕農場|成排的作物在紫色燈光下生長，有些葉子被什麼東西啃食過。','醫療艙|手術台上的束縛帶被扯斷了，地上滿是黏稠的綠色液體。','武器庫|大部分的武器架都空了，牆上有被爪子劃過的痕跡。','觀測甲板|巨大的舷窗外是旋轉的星雲，美得令人窒息。','反應爐維修通道|高溫讓空氣扭曲，管線不時噴出白色的蒸汽。','船員餐廳|餐盤還擺在桌上，食物已經發霉，椅子倒得亂七八糟。','貨物艙|貨櫃被由內而外撕開，裡面的東西不見了。','通訊塔|天線陣列閃著故障燈號，耳機裡只有沙沙的雜音。','實驗室 B|培養槽碎了一地，標籤上寫著「樣本 7：勿接觸」。','氣閘室|外艙門的指示燈閃著黃色，玻璃上有一個手印——從外面印上去的。','指揮艦橋|艦長的座椅空著，螢幕上不斷跳出紅色的警告。','垃圾回收區|壓縮機發出規律的轟鳴，空氣中有腐爛的氣味。','生態穹頂|人造森林在穹頂下生長，人造鳥鳴聲已經走調。','重力環走道|弧形的走道向兩側延伸，看不到盡頭。','船員宿舍|床鋪上散落著家人的照片，有一間的門被焊死了。']),
+ boss:{room:'被巢穴吞沒的核心實驗室|牆壁覆蓋著半透明的有機膜，中央一顆巨大的卵發出幽紫色的脈動。',n:'母體・異形女王',hp:80,atk:11,def:4,
+   intro:['卵後的陰影中，一個巨大的身影舒展開來——六條肢體、半透明的甲殼，以及無數隻眼睛。','你的腦海中響起一個不屬於你的聲音：「保護……孩子……」'],
+   half:'女王發出刺耳的尖嘯，整個空間的有機膜都在顫動！',charge:'的尾刺開始泛起紫光，對準了你！',defeat:'異形女王轟然倒下，那顆卵的脈動漸漸平穩下來，變成一枚發著柔光的晶體。',
+   peace:'翻譯器發出一串奇異的音節。女王停止了攻擊，無數隻眼睛注視著你。「你們……不是掠食者？」她緩緩後退，用身體護住卵，「我們……只是迷路了。」'},
+ enemies:[{n:'寄生蟲幼體',hp:11,atk:6,def:0,d:'一隻像蜘蛛的生物從通風口跳了出來。'},{n:'變異船員',hp:17,atk:6,def:1,d:'他穿著船員制服，但皮膚下有東西在蠕動。'},{n:'失控維修機器人',hp:16,atk:5,def:3,d:'它的焊槍噴出藍色的火焰。'},{n:'酸液異形',hp:14,atk:7,def:1,d:'牠的口器滴下的液體把地板腐蝕出一個個小洞。'},{n:'虛空獵手',hp:15,atk:7,def:2,d:'一個幾乎透明的生物在你眼前閃爍。'}],
+ npcs:[{n:'倖存的工程師',d:'她把自己反鎖在這裡，手裡緊握著一把螺絲起子。',hi:'「人類？真的是人類！快進來，把門關上！」',lore:'「那東西是從我們撿回來的隕石裡出來的。」',want:'工程師的扳手',ask:'「我的萬用扳手掉在外面了，有了它我就能修好通訊系統。」'},
+   {n:'艦載 AI「諾亞」',d:'牆上的面板亮起一個溫和的藍色光點。',hi:'「早安，船員。很遺憾通知您，本站的存活率目前為 3%。」',lore:'「分析顯示：異形並無惡意。牠們的行為模式與『保護後代』吻合度 94%。實驗室有一台未完成的外星語翻譯器。」',want:'諾亞的記憶模組',ask:'「我的記憶模組被拔走了，缺少它，我無法存取翻譯器的資料。」'},
+   {n:'受傷的保全隊長',d:'他靠著牆坐著，腿上纏著染血的繃帶。',hi:'「別過來……啊，你沒被感染。好吧，坐。」',lore:'「我的人全沒了。如果你要去核心實驗室，最好先把自己武裝起來。」',want:'隊長的家庭照片',ask:'「我口袋裡的照片掉了……我女兒的照片。我想在死前再看她一眼。」'},
+   {n:'躲在通風管的小孩',d:'通風口的格柵後面有一雙大眼睛在看你。',hi:'「噓……牠們聽得到。」',lore:'「那個大大的怪物，晚上會唱歌。聽起來好像很難過。」',want:'玩具機器人',ask:'「我的玩具機器人掉了，它叫波波，是我唯一的朋友。」'}],
+ items:{potion:'醫療凝膠',big:'奈米再生劑',bomb:'電漿手榴彈',elixir:'基因強化血清',weapons:['雷射切割器','脈衝步槍'],armors:['輕型太空衣','動力裝甲'],key:'艦長權限晶片',treasure:'外星水晶樣本',token:'外星語翻譯器',artifact:'虛空之卵'},
+ villain:'異形女王即將孵化虛空之卵，一旦成功，牠的族群將順著航道湧向地球',exit:'仍可運作的逃生艙',shrine:'閃爍的自動醫療站',merchant:'還在運作的自動補給機器人',
+ traps:['氣閘突然開始洩壓，強大的吸力把你往外拉！','地板的電纜破損，火花四濺！','前方的艙門正在自動關閉，再不過去就會被夾住！'],
+ lore:['「氧氣存量還夠十八個小時。」','「別相信任何把頭盔戴得緊緊的人。」','「核心實驗室需要艦長權限才能進入。」']},
+
+{id:'harbor',name:'幽靈海港',accent:'#9aa8c8',places:['霧鐘港','黑潮灣','哀歌港','鹽骨鎮'],
+ title:p=>`${p}的亡魂`,
+ intro:p=>[`${p}已經被濃霧籠罩了一百天，出海的船沒有一艘回來。`,`每到午夜，海面上就會出現一艘掛著破帆的幽靈船。`],
+ start:'濃霧碼頭|腐朽的木板在你腳下吱嘎作響，海浪拍打著看不見的岸。遠處傳來一聲鐘響。',
+ rooms:R2(['破舊燈塔|燈塔的燈早已熄滅，螺旋階梯上滿是潮濕的海草。','沉船酒館|酒館用一艘擱淺的船改建，桌上的酒杯還是滿的，卻空無一人。','鹽漬倉庫|成桶的醃魚發出刺鼻的味道，角落有東西在窸窣作響。','海神神殿|殘破的石柱上纏繞著貝殼與珊瑚，祭壇上擺著新鮮的祭品。','漁夫小屋|漁網掛在牆上，爐火還有餘溫，屋主卻不見蹤影。','墓園斜坡|墓碑上刻的名字全是溺死者，有些墳是新挖開的。','走私者洞穴|潮水在洞口進出，深處堆著木箱和生鏽的鐵鍊。','鐘樓|巨大的銅鐘在無風的夜裡自己擺動。','退潮的沙洲|海水退去，露出滿是骸骨與破船的沙地。','腐朽的海關所|帳本上記錄著一筆筆奇怪的貨物：「靈魂，三十七個」。','珊瑚地窖|牆壁長滿了紅色的珊瑚，像血管一樣延伸。','吊死者之樹|一棵枯樹上掛著幾條斷掉的繩索，在風中搖晃。','被淹沒的教堂|教堂一半沉在水裡，彩繪玻璃透出幽綠的光。','漁市場|攤位上的魚還在翻動，但牠們的眼睛全都是白色的。','造船廠|一艘未完成的船骨架躺在船台上，像巨獸的肋骨。','人魚礁石|礁石上傳來若有似無的歌聲，引誘著你靠近。']),
+ boss:{room:'幽靈船的船長室|船艙在海浪中搖晃，牆上掛滿褪色的航海圖，桌上的羅盤指針瘋狂旋轉。',n:'深淵船長・范德肯',hp:78,atk:10,def:4,
+   intro:['一個高大的身影從陰影中站起，他的鬍子裡纏著海草，眼窩中燃燒著綠色的鬼火。','「一百年了……終於有活人敢踏上我的船。來吧，成為我的船員！」'],
+   half:'船長怒吼，整艘船劇烈搖晃：「大海奪走了我的一切，我也要奪走你們的一切！」',charge:'舉起生鏽的船錨，海水在他身後捲成巨浪！',defeat:'船長的身影在海風中崩解，只剩一個指針停止旋轉的黃銅羅盤滾落在你腳邊。',
+   peace:'你遞出那封泛黃的情書。船長的手抖了起來：「瑪格麗特……她等了我一輩子？」綠色的鬼火漸漸熄滅，「原來……她從來沒有怪過我。」'},
+ enemies:[{n:'溺死的水手',hp:15,atk:6,def:1,d:'他渾身濕透，嘴裡不斷冒出海水。'},{n:'骷髏海盜',hp:16,atk:6,def:2,d:'骨頭喀喀作響，手裡揮舞著生鏽的彎刀。'},{n:'霧中觸手',hp:13,atk:7,def:0,d:'濃霧中伸出一條滑溜的巨大觸手。'},{n:'食人海鷗群',hp:11,atk:6,def:0,d:'一群眼睛發紅的海鷗尖叫著俯衝下來。'},{n:'被附身的漁夫',hp:17,atk:5,def:2,d:'他的眼睛翻白，嘴裡唸著聽不懂的禱詞。'}],
+ npcs:[{n:'酒館老闆娘',d:'她擦著永遠擦不乾淨的杯子，臉色蒼白得像紙。',hi:'「客人，要來一杯嗎？這裡的酒……喝了就回不去了喔。」',lore:'「船長以前是個好人，直到他的船在暴風雨中沉了。」',want:'老闆娘的戒指',ask:'「我的婚戒掉進了某個角落，那是我丈夫出海前給我的。」'},
+   {n:'失明的燈塔看守',d:'白髮老人拄著拐杖，空洞的雙眼望向大海。',hi:'「我看不見你，但我聽得見你的心跳。年輕人，你很害怕。」',lore:'「船長出海前，未婚妻寫了一封情書給他，可惜他再也沒讀到。那封信應該還在這港口某處……」',want:'燈塔的鏡片',ask:'「燈塔的鏡片被偷了，沒有光，迷途的靈魂就找不到回家的路。」'},
+   {n:'幽靈小女孩',d:'一個穿著白色睡衣的小女孩，腳不著地地飄著。',hi:'「大哥哥／大姐姐，你要陪我玩嗎？」',lore:'「船長爺爺很寂寞，他每天晚上都在哭。」',want:'小女孩的布娃娃',ask:'「我的布娃娃不見了……沒有她，我睡不著。」'},
+   {n:'年邁的神父',d:'他緊握著十字架，嘴唇不停地顫抖。',hi:'「願神保佑你，孩子。這座港口已經被遺棄了。」',lore:'「深淵羅盤是邪惡之物，它能指引死者，也能召喚海嘯。」',want:'神父的念珠',ask:'「我的念珠斷了，珠子散落四處，最重要的那串被海浪捲走了……」'}],
+ items:{potion:'蘭姆酒',big:'人魚之淚',bomb:'火藥桶',elixir:'海神祝福的貝殼',weapons:['生鏽的彎刀','燧發槍'],armors:['油布大衣','鯊魚皮背心'],key:'深淵船錨鑰匙',treasure:'西班牙金幣箱',token:'船長的情書',artifact:'深淵羅盤'},
+ villain:'深淵船長要用深淵羅盤召喚海嘯，把整座港口拖進海底陪葬',exit:'停在岸邊的小舢板',shrine:'海神的石像',merchant:'獨腳的老水手商人',
+ traps:['腐朽的木板突然斷裂，你差點掉進冰冷的海水！','一張漁網從天而降，上面掛滿了魚鉤！','腳下的沙子開始流動——是流沙！'],
+ lore:['「午夜鐘響時，千萬別回頭。」','「霧裡的歌聲不是人魚，是溺死的人在唱。」','「幽靈船只在大霧最濃的時候靠岸。」']}
+];
+
+const ROLES=[
+ {id:'sword',n:'流浪劍士',hp:40,atk:7,def:3,skill:'旋風斬',sd:'造成兩倍傷害',cd:3,desc:'刀口舔血多年，劍比任何承諾都可靠'},
+ {id:'mage',n:'秘術學者',hp:30,atk:7,def:2,skill:'奧術爆裂',sd:'無視防禦的強力魔法',cd:3,desc:'讀遍禁書，對未知的事物有著危險的好奇心'},
+ {id:'thief',n:'影行盜賊',hp:34,atk:6,def:2,skill:'暗影背刺',sd:'必定爆擊，並偷取金幣',cd:3,desc:'沒有打不開的鎖，也沒有逃不掉的追兵'},
+ {id:'priest',n:'聖堂醫者',hp:36,atk:6,def:3,skill:'治癒禱言',sd:'回復大量生命',cd:4,desc:'以信仰為盾，誓言救治每一個受苦的靈魂'},
+ {id:'hunter',n:'賞金獵人',hp:36,atk:7,def:2,skill:'精準射擊',sd:'重擊並打斷敵人蓄力',cd:3,desc:'只要有懸賞，天涯海角都追得到'}
+];
+const NAMES=['艾琳','凱恩','夜羽','林遠','小蓮','雷克斯','墨言','諾娃','阿哲','星野','薇薇安','白狼','蘇菲','陳默','阿凜','卡洛'];
+const MOTIVES=['為了尋找三年前失蹤的妹妹','為了償還一筆足以致命的債務','因為一封沒有署名的神秘信件','為了洗刷自己背負的冤屈','為了實現對死去摯友的承諾','只是因為無聊——以及傳說中的寶藏'];
+const RIDDLES=[
+ {q:'「什麼東西越洗越髒？」',o:['水','衣服','碗盤'],a:0},
+ {q:'「早上用四條腿走路，中午兩條腿，晚上三條腿，那是什麼？」',o:['人','狗','鳥'],a:0},
+ {q:'「什麼東西屬於你，別人卻用得比你多？」',o:['你的名字','你的錢','你的時間'],a:0},
+ {q:'「什麼東西必須先打破，才能使用？」',o:['雞蛋','鏡子','花瓶'],a:0},
+ {q:'「你越往前走，身後留下的越多，那是什麼？」',o:['腳印','影子','回憶'],a:0},
+ {q:'「什麼東西有眼睛，卻什麼都看不見？」',o:['針','魚','貓頭鷹'],a:0},
+ {q:'「什麼東西沒有腳卻會跑，沒有嘴卻會吼？」',o:['河流','石頭','樹'],a:0},
+ {q:'「說出我的名字，我就消失了。我是什麼？」',o:['沉默','秘密','黑暗'],a:0}
+];
+const ENDINGS={hero:'英雄結局',dark:'黑暗結局',peace:'和平結局',escape:'財富結局',coward:'無功而返',death:'殞落結局'};
+const DIRS={'北':[0,-1],'東':[1,0],'南':[0,1],'西':[-1,0]};
+const DK=['北','東','南','西'];
+const OPP={'北':'南','南':'北','東':'西','西':'東'};
+const DIR_ALIAS={n:'北',s:'南',e:'東',w:'西',north:'北',south:'南',east:'東',west:'西','上':'北','下':'南','左':'西','右':'東','北方':'北','南方':'南','東方':'東','西方':'西','北邊':'北','南邊':'南','東邊':'東','西邊':'西'};
+
+/* ========== 世界生成 ========== */
+function generate(seed){
+  let wi=-1,ri=-1;const m=/@(\d)(\d)$/.exec(seed);if(m){wi=+m[1];ri=+m[2];}
+  const g=new RNG(hashSeed(seed));
+  const wIdx=(wi>=0&&wi<WORLDS.length)?wi:g.int(0,WORLDS.length-1);
+  const rIdx=(ri>=0&&ri<ROLES.length)?ri:g.int(0,ROLES.length-1);
+  const W=WORLDS[wIdx],RO=ROLES[rIdx],I=W.items;
+  const place=g.pick(W.places);
+  const n=g.int(11,15);
+  // 地圖：隨機漫步生成網格圖
+  const rooms=[{id:0,x:0,y:0,exits:{}}];const occ={'0,0':0};let guard=0;
+  while(rooms.length<n&&guard++<10000){
+    const r=g.pick(rooms),d=g.pick(DK),nx=r.x+DIRS[d][0],ny=r.y+DIRS[d][1],k=nx+','+ny;
+    if(occ[k]===undefined){const id=rooms.length;rooms.push({id,x:nx,y:ny,exits:{}});occ[k]=id;r.exits[d]=id;rooms[id].exits[OPP[d]]=r.id;}
+    else if(r.exits[d]===undefined&&g.chance(.15)){const o=occ[k];r.exits[d]=o;rooms[o].exits[OPP[d]]=r.id;}
+  }
+  const dist=bfs(rooms,0);let boss=0;rooms.forEach(r=>{if(dist[r.id]>dist[boss])boss=r.id;});
+  // 首領房只保留一個入口
+  const br=rooms[boss];let keep=null;
+  for(const d of DK){const o=br.exits[d];if(o!==undefined&&dist[o]===dist[boss]-1&&!keep)keep=d;}
+  for(const d of DK){if(br.exits[d]!==undefined&&d!==keep){delete rooms[br.exits[d]].exits[OPP[d]];delete br.exits[d];}}
+  const maxD=dist[boss]||1;
+  const names=g.shuffle(W.rooms);let ni=0;
+  rooms.forEach(r=>{r.items=[];r.enemy=null;r.event=null;r.npc=null;r.visited=false;r.exit=false;r.boss=false;r.locked=false;r.dist=dist[r.id];
+    if(r.id===0){const [a,b]=W.start.split('|');r.name=a;r.desc=b;}
+    else if(r.id===boss){const [a,b]=W.boss.room.split('|');r.name=a;r.desc=b;r.boss=true;r.locked=true;}
+    else {r.name=names[ni].n;r.desc=names[ni].d;ni++;}});
+  const it=(k,nm,v)=>({k,n:nm,v:v||0});
+  const mkEnemy=(r,elite)=>{const b=g.pick(W.enemies),f=r.dist/maxD;const e={n:b.n,d:b.d,hp:Math.round(b.hp*(1+.7*f)),atk:b.atk+Math.round(2.5*f),def:b.def+Math.round(1.5*f),drop:null};
+    if(elite){e.n='精英・'+e.n;e.hp=Math.round(e.hp*1.5)+4;e.atk+=2;e.def+=1;e.elite=true;}
+    e.mhp=e.hp;e.xp=Math.round(e.hp*.6+e.atk*1.5);e.gold=g.int(3,9)+Math.round(8*f)+(elite?12:0);return e;};
+  const others=g.shuffle(rooms.filter(r=>r.id!==0&&r.id!==boss));
+  const npcDefs=g.shuffle(W.npcs).slice(0,3);
+  const npcs=npcDefs.map((d,i)=>({n:d.n,d:d.d,hi:d.hi,want:d.want,ask:d.ask,room:others[i].id,met:false,done:false,li:0,lines:[d.lore],reward:null}));
+  npcs.forEach(p=>rooms[p.room].npc=npcs.indexOf(p));
+  const exitRoom=others[3];exitRoom.exit=true;
+  const rest=others.slice(4);
+  const keyPlan=g.pick(['quest','guard','riddle']);
+  const pool=others.filter(r=>r.npc===null);
+  // 委託物品
+  const qRooms=[];
+  npcs.forEach(p=>{const cand=pool.filter(r=>!qRooms.includes(r));const r=g.pick(cand.length?cand:pool);qRooms.push(r);r.items.push(it('quest',p.want));p.itemRoom=r.id;});
+  npcs[0].reward=keyPlan==='quest'?it('key',I.key):it('big',I.big,40);
+  npcs[1].reward=it('token',I.token);
+  npcs[2].reward=it('elixir',I.elixir);
+  let keyRoom=null;
+  const restS=g.shuffle(rest);
+  if(keyPlan==='guard'){keyRoom=restS[0];keyRoom.enemy=mkEnemy(keyRoom,true);keyRoom.enemy.drop=it('key',I.key);}
+  if(keyPlan==='riddle'){keyRoom=restS[0];const rd=g.pick(RIDDLES);const order=g.shuffle([0,1,2]);keyRoom.event={t:'riddle',q:rd.q,o:order.map(i=>rd.o[i]),a:order.indexOf(rd.a),done:false,reward:it('key',I.key)};}
+  if(keyPlan==='quest')keyRoom=rooms[npcs[0].room];
+  const tRoom=restS[1]||restS[0];tRoom.items.push(it('treasure',I.treasure));if(!tRoom.enemy&&!(tRoom.event))tRoom.enemy=mkEnemy(tRoom,g.chance(.4));
+  // 敵人、物品、事件
+  let merch=0,riddles=keyPlan==='riddle'?1:0;
+  pool.forEach(r=>{
+    if(!r.enemy&&g.chance(.5))r.enemy=mkEnemy(r,g.chance(.12));
+    if(g.chance(.42)){const f=r.dist/maxD,x=g.next();
+      if(x<.38)r.items.push(it('potion',I.potion,16));else if(x<.52)r.items.push(it('bomb',I.bomb,18));
+      else if(x<.66)r.items.push(it('weapon',I.weapons[f>.5?1:0],f>.5?5:3));else if(x<.8)r.items.push(it('armor',I.armors[f>.5?1:0],f>.5?3:2));
+      else if(x<.9)r.items.push(it('gold','一小袋金幣',g.int(8,20)));else r.items.push(it('big',I.big,40));}
+    if(!r.event&&g.chance(.45)){let t=g.pick(['trap','trap','shrine','merchant','chest','chest','rest','riddle']);
+      if(t==='merchant'&&merch>=1)t='chest';if(t==='riddle'&&riddles>=2)t='shrine';
+      if(t==='merchant')merch++;if(t==='riddle')riddles++;r.event=mkEvent(g,t,W,I,r);}
+  });
+  if(!merch){const c=pool.filter(r=>!r.event&&!r.enemy);const r=c.length?g.pick(c):g.pick(pool.filter(r=>!r.event).length?pool.filter(r=>!r.event):pool);r.event=mkEvent(g,'merchant',W,I,r);}
+  rooms[0].items.push(it('potion',I.potion,16));
+  rooms[boss].enemy={n:W.boss.n,d:'',hp:W.boss.hp,mhp:W.boss.hp,atk:W.boss.atk,def:W.boss.def,xp:0,gold:0,boss:true};
+  // 線索
+  const R=id=>`「${rooms[id].name}」`;
+  const keyHint=keyPlan==='quest'?`「${I.key}在${npcs[0].n}手上，聽說他想找回某樣重要的東西。」`:keyPlan==='guard'?`「${I.key}被一隻${keyRoom.enemy.n}吞下肚了，牠就盤踞在${R(keyRoom.id)}。」`:`「${R(keyRoom.id)}的牆上刻著一道謎題，答對的人就能得到${I.key}。」`;
+  const bossPath=rooms[br.exits[keep]];
+  const bossHint=`「${R(boss)}就在${R(bossPath.id)}的${keep==='北'?'南':keep==='南'?'北':keep==='東'?'西':'東'}邊，入口被封印著，必須有${I.key}才能打開。」`;
+  const merchRoom=rooms.find(r=>r.event&&r.event.t==='merchant');
+  npcs[0].lines.push(keyHint,bossHint,g.pick(W.lore));
+  npcs[1].lines.push(`「如果你只想保命，${W.exit}在${R(exitRoom.id)}。」`,`「有人說${I.treasure}藏在${R(tRoom.id)}。」`,g.pick(W.lore));
+  npcs[2].lines.push(keyHint,merchRoom?`「${W.merchant}在${R(merchRoom.id)}做生意，有錢的話可以去看看。」`:g.pick(W.lore),bossHint);
+  const hero=g.pick(NAMES),motive=g.pick(MOTIVES);
+  const p={hp:RO.hp,mhp:RO.hp,atk:RO.atk,def:RO.def,lv:1,xp:0,gold:10+(RO.id==='thief'?10:0),inv:[],weapon:null,armor:null,cd:0};
+  return {v:1,seed,w:wIdx,r:rIdx,place,hero,motive,rooms,npcs,keyPlan,boss,cur:0,prev:0,p,mode:'explore',ctx:{},turn:0,ending:null,log:[],rs:hashSeed(seed+'#play')};
+}
+function bfs(rooms,s){const d={};d[s]=0;const q=[s];while(q.length){const c=q.shift();for(const k of DK){const o=rooms[c].exits[k];if(o!==undefined&&d[o]===undefined){d[o]=d[c]+1;q.push(o);}}}return d;}
+function mkEvent(g,t,W,I,r){
+  if(t==='trap')return {t,text:g.pick(W.traps),done:false};
+  if(t==='riddle'){const rd=g.pick(RIDDLES);const order=g.shuffle([0,1,2]);return {t,q:rd.q,o:order.map(i=>rd.o[i]),a:order.indexOf(rd.a),done:false,reward:g.chance(.5)?{k:'elixir',n:I.elixir}:{k:'gold',n:'一袋古老的金幣',v:g.int(25,40)}};}
+  if(t==='merchant')return {t,stock:[{k:'potion',n:I.potion,v:16,price:12},{k:'bomb',n:I.bomb,v:18,price:15},{k:'big',n:I.big,v:40,price:28},{k:'weapon',n:I.weapons[1],v:5,price:45,once:true},{k:'armor',n:I.armors[1],v:3,price:40,once:true}]};
+  if(t==='chest')return {t,done:false,mimic:g.chance(.25)};
+  if(t==='shrine')return {t,done:false};
+  if(t==='rest')return {t,done:false};
+}
+
+/* ========== 狀態與工具 ========== */
+let S=null,RG=null;
+const $=id=>document.getElementById(id);
+const W=()=>WORLDS[S.w],RO=()=>ROLES[S.r],I=()=>W().items;
+const room=()=>S.rooms[S.cur];
+const patk=()=>S.p.atk+(S.p.weapon?S.p.weapon.v:0);
+const pdef=()=>S.p.def+(S.p.armor?S.p.armor.v:0);
+const has=k=>S.p.inv.findIndex(x=>x.k===k);
+const hasName=n=>S.p.inv.findIndex(x=>x.n===n);
+
+/* ========== 打字機 ========== */
+const SPEEDS=[{n:'正常',ms:22,step:1},{n:'快速',ms:12,step:2},{n:'慢速',ms:40,step:1},{n:'即時',ms:0,step:0}];
+const TW={q:[],cur:null,timer:null,speed:(+(store.get('ta_speed')||0))%4||0};
+function say(t,c){if(S){S.log.push({t,c:c||''});if(S.log.length>70)S.log.shift();}
+  const el=document.createElement('p');if(c)el.className=c;$('log').appendChild(el);TW.q.push({el,t});pump();}
+function pump(){
+  if(TW.cur)return;
+  const sp=SPEEDS[TW.speed];
+  if(sp.ms===0){while(TW.q.length){const j=TW.q.shift();j.el.textContent=j.t;}scrollLog();scheduleRender();return;}
+  const j=TW.q.shift();if(!j){scheduleRender();return;}
+  TW.cur=j;j.el.classList.add('cursor');let i=0;$('choices').innerHTML='<span class="waiting">…（點擊故事區或按空白鍵略過）</span>';
+  TW.timer=setInterval(()=>{i+=sp.step;j.el.textContent=j.t.slice(0,i);scrollLog();
+    if(i>=j.t.length){clearInterval(TW.timer);j.el.classList.remove('cursor');TW.cur=null;pump();}},sp.ms);
+}
+function skipTyping(){if(TW.cur){clearInterval(TW.timer);TW.cur.el.textContent=TW.cur.t;TW.cur.el.classList.remove('cursor');TW.cur=null;}
+  while(TW.q.length){const j=TW.q.shift();j.el.textContent=j.t;}scrollLog();renderChoices();}
+let renderPending=false;
+function scheduleRender(){if(renderPending)return;renderPending=true;setTimeout(()=>{renderPending=false;if(!TW.cur&&!TW.q.length)renderChoices();},0);}
+function scrollLog(){const l=$('log');l.scrollTop=l.scrollHeight;}
+function clearLog(){if(TW.cur){clearInterval(TW.timer);TW.cur=null;}TW.q=[];$('log').innerHTML='';}
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1800);}
+
+/* ========== 遊戲流程 ========== */
+function newGame(seed){
+  S=generate(seed);RG=new RNG(S.rs);clearLog();applyTheme();
+  const w=W(),ro=RO();
+  say(w.title(S.place),'title');
+  w.intro(S.place).forEach(t=>say(t));
+  say(`你是${S.hero}，一名${ro.n}——${ro.desc}。你${S.motive}，來到了這裡。`);
+  say(`然而你很快就會發現，${w.villain}。`);
+  say(`（職業技能「${ro.skill}」：${ro.sd}。輸入「說明」可查看指令。）`,'sys');
+  enterRoom(0);
+}
+function applyTheme(){document.documentElement.style.setProperty('--accent',W().accent);}
+function sync(){if(S&&RG)S.rs=RG.s;}
+
+function enterRoom(id){
+  S.prev=S.cur;S.cur=id;const r=room();const first=!r.visited;r.visited=true;
+  say(`【${r.name}】`,'locname');
+  if(first)say(r.desc);else say('你回到了這裡。','sys');
+  if(r.enemy){startCombat();return;}
+  if(r.event&&r.event.t==='trap'&&!r.event.done){S.mode='event';S.ctx={ev:'trap'};say(r.event.text,'warn');return;}
+  S.mode='explore';describe(r,false);
+}
+function describe(r,full){
+  if(full){say(`【${r.name}】`,'locname');say(r.desc);}
+  if(r.npc!==null){const n=S.npcs[r.npc];say(`${n.n}在這裡。${n.met?'':n.d}`,'npc');}
+  const ev=r.event;
+  if(ev){
+    if(ev.t==='shrine'&&!ev.done)say(`房間中央有一座${W().shrine}，散發著微弱的光芒。`);
+    if(ev.t==='chest'&&!ev.done)say('角落裡放著一個上了鎖的舊箱子。');
+    if(ev.t==='rest'&&!ev.done)say('這裡看起來相對安全，似乎可以稍作休息。');
+    if(ev.t==='merchant')say(`${W().merchant}在這裡擺了個小攤。`,'npc');
+    if(ev.t==='riddle'&&!ev.done)say('牆上刻著一道謎題，下方有個小小的凹槽。');
+    if(ev.t==='trap'&&ev.done)say('之前觸發的機關已經失效了。','sys');
+  }
+  if(r.exit)say(`${W().exit}就在這裡——你隨時可以離開這個地方。`,'special');
+  if(r.items.length)say(`你注意到：${r.items.map(x=>x.n).join('、')}。`,'item');
+  const ex=DK.filter(d=>r.exits[d]!==undefined).map(d=>{const o=S.rooms[r.exits[d]];return `${d}（${o.visited?o.name:'未知'}${o.locked?'・🔒':''}）`;});
+  say(`出口：${ex.join('　')}`,'sys');
+}
+function move(d){
+  const r=room(),t=r.exits[d];
+  if(t===undefined){say(`${d}邊沒有路。`,'sys');return;}
+  const tr=S.rooms[t];
+  if(tr.locked){
+    if(has('key')>=0){say(`你將${I().key}嵌入門上的凹槽。一陣低沉的轟鳴後，封印緩緩解開了。`,'special');tr.locked=false;}
+    else{say(`通往${d}邊的門被強大的封印擋住了。你需要${I().key}才能通過。`,'warn');return;}
+  }
+  S.turn++;enterRoom(t);
+}
+function take(name){
+  const r=room();if(!r.items.length){say('這裡沒有可以拿的東西。','sys');return;}
+  let list=r.items;if(name){list=r.items.filter(x=>x.n.includes(name));if(!list.length){say(`這裡沒有「${name}」。`,'sys');return;}}
+  list.slice().forEach(x=>{r.items.splice(r.items.indexOf(x),1);gain(x);});
+}
+function gain(x){
+  const p=S.p;
+  if(x.k==='gold'){p.gold+=x.v;say(`你獲得了 ${x.v} 金幣。`,'heal');return;}
+  p.inv.push(x);say(`你取得了「${x.n}」。`,'item');
+  if(x.k==='weapon'&&(!p.weapon||p.weapon.v<x.v)){p.weapon=x;say(`你裝備了${x.n}（攻擊 +${x.v}）。`,'item');}
+  if(x.k==='armor'&&(!p.armor||p.armor.v<x.v)){p.armor=x;say(`你穿上了${x.n}（防禦 +${x.v}）。`,'item');}
+  if(x.k==='key')say('這應該就是打開封印的關鍵。','special');
+  if(x.k==='token')say('你感覺這東西在最終的對決中或許能派上用場……','special');
+}
+function heal(n){const p=S.p,b=p.hp;p.hp=Math.min(p.mhp,p.hp+n);return p.hp-b;}
+function useItem(idx){
+  const p=S.p,x=p.inv[idx];if(!x)return false;const inC=S.mode==='combat';
+  switch(x.k){
+    case 'potion':case 'big':{if(p.hp>=p.mhp&&!inC){say('你的生命值是滿的。','sys');return false;}p.inv.splice(idx,1);say(`你使用了${x.n}，回復 ${heal(x.v)} 點生命。`,'heal');return true;}
+    case 'elixir':p.inv.splice(idx,1);p.mhp+=8;p.atk+=1;heal(12);say(`你使用了${x.n}。一股力量湧遍全身！（生命上限 +8、攻擊 +1）`,'heal');return true;
+    case 'bomb':if(!inC){say(`${x.n}要在戰鬥中才能使用。`,'sys');return false;}{p.inv.splice(idx,1);const e=room().enemy;e.hp-=x.v;e.charging=false;say(`你扔出${x.n}！轟然巨響中，${e.n}受到 ${x.v} 點傷害，蓄力也被打斷了！`,'dmg');return true;}
+    case 'weapon':p.weapon=x;say(`你裝備了${x.n}。`,'item');return inC;
+    case 'armor':p.armor=x;say(`你穿上了${x.n}。`,'item');return inC;
+    case 'token':
+      if(inC&&room().enemy.boss){const e=room().enemy;
+        if(e.hp<=e.mhp*.6){say(`你拿出了${x.n}。`,'special');say(W().boss.peace,'npc');ending('peace');return 'end';}
+        say(`你拿出了${x.n}，但${e.n}正處於狂怒之中，根本聽不進去。也許要先削弱牠的氣勢……`,'warn');return true;}
+      say(`${x.n}靜靜地躺在你手中。也許該在最關鍵的時刻拿出來。`,'sys');return false;
+    case 'key':say(room().exits&&DK.some(d=>{const t=room().exits[d];return t!==undefined&&S.rooms[t].locked;})?'封印之門就在附近，直接朝那個方向前進吧。':`${x.n}應該是用來打開某道封印的。`,'sys');return false;
+    case 'quest':say(`這是「${x.n}」。應該有人正在找它。`,'sys');return false;
+    case 'treasure':say(`${x.n}在你手中閃閃發光。光是它就足夠讓你下半輩子衣食無憂。`,'sys');return false;
+  }
+  return false;
+}
+
+/* ========== 戰鬥 ========== */
+function startCombat(){
+  const e=room().enemy;S.mode='combat';S.ctx={def:false};
+  if(room().boss&&!e.introduced){e.introduced=true;W().boss.intro.forEach(t=>say(t,'boss'));say('⚔ 最終決戰開始！','warn');return;}
+  say(`${e.n}${RG.pick(['擋住了你的去路','從陰影中撲了出來','發現了你'])}！${e.d}`,'dmg');
+}
+function combat(a,arg){
+  const r=room(),e=r.enemy,p=S.p,ro=RO();let act=true;S.ctx.def=false;
+  if(a==='atk'){let d=Math.max(1,patk()+RG.int(0,3)-e.def);const crit=RG.chance(ro.id==='thief'?.2:.1);if(crit)d=Math.round(d*1.6);e.hp-=d;say(`你${crit?'抓住破綻，':''}攻擊${e.n}，造成 ${d} 點傷害${crit?'（爆擊！）':''}。`);}
+  else if(a==='def'){S.ctx.def=true;say('你擺出防禦架勢，準備承受下一擊。');}
+  else if(a==='skill'){
+    if(p.cd>0){say(`「${ro.skill}」還需要 ${p.cd} 回合才能再次使用。`,'sys');return;}
+    p.cd=ro.cd+1;
+    if(ro.id==='sword'){const d=Math.max(2,(patk()+RG.int(0,3)-e.def)*2);e.hp-=d;say(`你迴身揮出旋風斬！劍光交錯，造成 ${d} 點傷害！`,'special');}
+    if(ro.id==='mage'){const d=patk()+RG.int(4,8);e.hp-=d;say(`你吟唱咒文，奧術爆裂在${e.n}身上炸開，造成 ${d} 點無視防禦的傷害！`,'special');}
+    if(ro.id==='thief'){const d=Math.max(2,Math.round((patk()+RG.int(0,3)-e.def)*1.8));e.hp-=d;const g=RG.int(3,8);p.gold+=g;say(`你閃身到${e.n}背後，一記背刺造成 ${d} 點傷害，還順手摸走了 ${g} 金幣！`,'special');}
+    if(ro.id==='priest'){const h=heal(Math.round(p.mhp*.45));say(`你低聲禱告，溫暖的光芒包圍了你，回復 ${h} 點生命。`,'heal');}
+    if(ro.id==='hunter'){const d=Math.max(2,Math.round((patk()+RG.int(2,5)-e.def)*1.5));e.hp-=d;const was=e.charging;e.charging=false;say(`你屏息瞄準，精準射擊命中要害，造成 ${d} 點傷害！${was?'對方的蓄力被打斷了！':''}`,'special');}
+  }
+  else if(a==='item'){const res=useItem(arg);if(res==='end')return;if(!res)return;}
+  else if(a==='flee'){
+    if(e.boss){say('封印在你身後重新閉合——已經無路可退了！','warn');}
+    else if(RG.chance(.5+(ro.id==='thief'?.3:0))){say('你找到空隙，狼狽地逃了出去！','sys');e.charging=false;S.mode='explore';const back=S.prev;S.prev=S.cur;S.cur=back;S.turn++;say(`【${room().name}】`,'locname');describe(room(),false);if(room().enemy)startCombat();return;}
+    else say('你想逃跑，但被擋了下來！','warn');
+  }
+  if(e.hp<=0){win(e);return;}
+  if(e.boss&&!e.halfDone&&e.hp<=e.mhp/2){e.halfDone=true;say(W().boss.half,'boss');}
+  enemyTurn(e);
+  if(p.cd>0)p.cd--;
+  if(p.hp<=0){p.hp=0;say(`你倒在了${room().name}的地上，視線漸漸模糊……`,'dmg');ending('death');}
+}
+function enemyTurn(e){
+  const p=S.p,def=S.ctx.def;let d;
+  if(e.charging){e.charging=false;d=Math.max(2,e.atk*2+RG.int(0,3)-pdef());if(def){d=Math.max(1,Math.ceil(d/3));say(`${e.n}的重擊砸在你的防禦上，你只受到 ${d} 點傷害。`,'heal');}else say(`${e.n}的蓄力一擊重重打中了你，造成 ${d} 點傷害！`,'dmg');}
+  else if(RG.chance(e.boss?.3:.2)){e.charging=true;say(e.boss?`${e.n}${W().boss.charge}`:`${e.n}正在蓄力，下一擊將非常危險！`,'warn');return;}
+  else{d=Math.max(1,e.atk+RG.int(0,2)-pdef());if(def)d=Math.max(0,Math.ceil(d/2));say(def?`你擋下了大部分攻擊，只受到 ${d} 點傷害。`:`${e.n}攻擊你，造成 ${d} 點傷害。`,def?'':'dmg');}
+  p.hp-=d;
+}
+function win(e){
+  const p=S.p,r=room();r.enemy=null;S.ctx={};S.mode=e.boss?'postboss':'explore';
+  if(e.boss){say(W().boss.defeat,'boss');S.mode='postboss';say(`${I().artifact}就在你的眼前。它蘊含的力量足以改變世界——或者毀滅它。`,'special');return;}
+  say(`你擊敗了${e.n}！獲得 ${e.xp} 經驗與 ${e.gold} 金幣。`,'heal');p.xp+=e.xp;p.gold+=e.gold;
+  if(e.drop){r.items.push(e.drop);say(`${e.n}倒下時掉落了「${e.drop.n}」。`,'item');}
+  levelUp();S.mode='explore';describe(r,false);
+}
+function levelUp(){const p=S.p;while(p.xp>=p.lv*20){p.xp-=p.lv*20;p.lv++;p.mhp+=6;p.atk+=2;if(p.lv%2===0)p.def+=1;heal(Math.round(p.mhp*.35));say(`✦ 升級了！你現在是 ${p.lv} 級。（生命上限 +6、攻擊 +2${p.lv%2===0?'、防禦 +1':''}）`,'special');}}
+
+/* ========== 事件與人物 ========== */
+function talk(){
+  const r=room();if(r.npc===null){say('這裡沒有人可以交談。','sys');return;}
+  const n=S.npcs[r.npc];S.mode='npc';S.ctx={npc:r.npc};
+  if(!n.met){n.met=true;say(`${n.n}：${n.hi}`,'npc');}else say(`${n.n}朝你點了點頭。`,'npc');
+}
+function npcAct(a){
+  const n=S.npcs[S.ctx.npc];
+  if(a==='ask'){const t=n.lines[n.li%n.lines.length];n.li++;say(`${n.n}：${t}`,'npc');}
+  if(a==='quest'){
+    if(n.done){say(`${n.n}：「謝謝你，我永遠不會忘記你的幫助。」`,'npc');return;}
+    const i=hasName(n.want);
+    if(i>=0){S.p.inv.splice(i,1);n.done=true;say(`你把「${n.want}」交給了${n.n}。`);say(`${n.n}：「真的是它！太好了……這個給你，你一定用得上。」`,'npc');gain(n.reward);S.p.gold+=10;say('（另外獲得 10 金幣）','sys');}
+    else{say(`${n.n}：${n.ask}`,'npc');say(`${n.n}：「我記得最後一次看到它，是在「${S.rooms[n.itemRoom].name}」附近。」`,'npc');}
+  }
+  if(a==='bye'){say(`你向${n.n}道別。`,'sys');S.mode='explore';}
+}
+function eventAct(a,arg){
+  const r=room(),ev=r.event,p=S.p,ro=RO();
+  if(S.ctx.ev==='trap'){
+    if(a==='disarm'){if(RG.chance(.45+(ro.id==='thief'?.4:0)+(ro.id==='mage'?.1:0))){say('你屏住呼吸，小心翼翼地拆除了機關。','heal');if(RG.chance(.5)){const g=RG.int(4,10);p.gold+=g;say(`機關裡藏著 ${g} 枚金幣。`,'item');}}
+      else{const d=RG.int(5,9);p.hp-=d;say(`失手了！機關啟動，你受到 ${d} 點傷害。`,'dmg');}}
+    else if(a==='force'){const d=RG.int(3,6);p.hp-=d;say(`你咬緊牙關硬闖過去，受到 ${d} 點傷害。`,'dmg');}
+    else if(a==='back'){say('你決定先退回去。','sys');S.mode='explore';const b=S.prev;S.prev=S.cur;S.cur=b;say(`【${room().name}】`,'locname');describe(room(),false);return;}
+    ev.done=true;if(p.hp<=0){p.hp=0;say('機關成了你冒險的終點……','dmg');ending('death');return;}
+    S.mode='explore';describe(r,false);return;
+  }
+  if(S.ctx.ev==='riddle'){
+    if(a==='giveup'){say('你決定改天再來挑戰這道謎題。','sys');S.mode='explore';return;}
+    const i=+arg;
+    if(i===ev.a){ev.done=true;say(`你說出「${ev.o[i]}」。凹槽發出光芒，牆面緩緩打開——`,'heal');gain(ev.reward);S.mode='explore';}
+    else{const d=RG.int(3,6);p.hp-=d;say(`答錯了！石壁噴出一陣灼熱的氣流，你受到 ${d} 點傷害。`,'dmg');if(p.hp<=0){p.hp=0;ending('death');return;}say('謎題依然在那裡等著你。','sys');}
+    return;
+  }
+  if(S.ctx.ev==='shop'){
+    if(a==='leave'){say('「歡迎再來啊！」','npc');S.mode='explore';return;}
+    const s=ev.stock[+arg];if(!s||s.sold)return;
+    if(p.gold<s.price){say(`你的金幣不夠（需要 ${s.price}）。`,'warn');return;}
+    p.gold-=s.price;if(s.once)s.sold=true;say(`你花了 ${s.price} 金幣。`,'sys');gain({k:s.k,n:s.n,v:s.v});return;
+  }
+  if(S.ctx.ev==='leave'){
+    if(a==='stay'){say('你轉過身，決定把事情做完。','sys');S.mode='explore';return;}
+    ending(has('treasure')>=0?'escape':'coward');return;
+  }
+}
+function feature(t){
+  const r=room(),ev=r.event,p=S.p;
+  if(t==='shrine'){ev.done=true;const x=RG.next();say(`你在${W().shrine}前閉上眼睛……`);
+    if(x<.4){heal(p.mhp);say('一股暖流湧遍全身，你的傷勢完全痊癒了。','heal');}
+    else if(x<.6){p.atk+=1;say('你感覺手中的武器變得更加順手。（攻擊 +1）','heal');}
+    else if(x<.85){const d=RG.int(4,8);p.hp=Math.max(1,p.hp-d);say(`一陣寒意竄上背脊——這是詛咒！你失去了 ${d} 點生命。`,'dmg');}
+    else{const g=RG.int(15,30);p.gold+=g;say(`供桌上的硬幣掉了下來。你獲得 ${g} 金幣。`,'item');}}
+  if(t==='chest'){ev.done=true;
+    if(ev.mimic){say('你剛碰到箱子，它就張開了滿是尖牙的大嘴——是寶箱怪！','dmg');r.enemy={n:'寶箱怪',d:'',hp:20+r.dist*2,mhp:20+r.dist*2,atk:6+Math.floor(r.dist/2),def:2,xp:18,gold:25};startCombat();return;}
+    const I_=I(),x=RG.next();const loot=x<.4?{k:'potion',n:I_.potion,v:16}:x<.6?{k:'bomb',n:I_.bomb,v:18}:x<.8?{k:'gold',n:'金幣',v:RG.int(15,30)}:{k:'big',n:I_.big,v:40};
+    say('箱子嘎吱一聲打開了。');gain(loot);}
+  if(t==='rest'){ev.done=true;say('你找了個角落坐下，閉眼休息了一會兒。');const h=heal(Math.round(p.mhp*.5));say(`你回復了 ${h} 點生命。`,'heal');
+    if(RG.chance(.3)){const W_=W();const b=RG.pick(W_.enemies);r.enemy={n:b.n,d:b.d,hp:b.hp,mhp:b.hp,atk:b.atk,def:b.def,xp:12,gold:6};say('但休息的動靜引來了不速之客！','warn');startCombat();}}
+}
+
+/* ========== 結局 ========== */
+function ending(type){
+  S.mode='ending';S.ending=type;const w=W(),i=I(),h=S.hero;
+  const T={
+    hero:[`你高舉武器，將${i.artifact}擊得粉碎。耀眼的光芒席捲了一切。`,`當光芒散去，${S.place}恢復了寧靜。人們不會知道是誰拯救了他們，但${h}這個名字，將在某個角落的傳說裡流傳下去。`],
+    dark:[`你伸手握住了${i.artifact}。冰冷的力量順著手臂爬進你的心臟。`,`「原來如此……」你低聲笑了。${S.place}迎來了新的主人。多年以後，又有一名冒險者來到這裡——而這一次，坐在王座上的是你。`],
+    peace:[`戰鬥結束了，沒有人需要死去。`,`${i.artifact}被重新封印，${S.place}的詛咒隨之解除。你帶著一個沒有人會相信的故事離開，但你知道，這是最好的結局。`],
+    escape:[`你緊抱著${i.treasure}，頭也不回地離開了${S.place}。`,`你成了富翁，再也不用為生計發愁。只是每到深夜，你總會夢見那個地方——以及你沒能阻止的事。`],
+    coward:[`你逃離了${S.place}，兩手空空。`,`活著，總比什麼都好……你這樣告訴自己。但那段經歷，成了你一輩子不願提起的回憶。`],
+    death:[`${h}的冒險在這裡畫下句點。`,`${S.place}的黑暗吞沒了又一個名字。也許下一位冒險者會更幸運。`]
+  }[type];
+  say(`— ${ENDINGS[type]} —`,'title');T.forEach(t=>say(t,'ending'));
+  say(`回合數：${S.turn}　等級：${S.p.lv}　金幣：${S.p.gold}　種子：${S.seed}`,'sys');
+  const got=getEndings();if(!got.includes(type)){got.push(type);store.set('ta_endings',JSON.stringify(got));say('✦ 新的結局已解鎖！','special');}
+}
+function getEndings(){try{return JSON.parse(store.get('ta_endings')||'[]');}catch(e){return [];}}
+
+/* ========== 選項 ========== */
+function getChoices(){
+  if(!S)return [{l:'開始新冒險',a:'new',c:'special'}].concat(store.get('ta_save')?[{l:'讀取存檔',a:'load'}]:[]);
+  const r=room(),p=S.p,c=[];
+  if(S.mode==='combat'&&!r.enemy)S.mode='explore';
+  if(S.mode==='ending'){c.push({l:'展開新的冒險',a:'new',c:'special'},{l:'以相同種子重玩',a:'replay'});return c;}
+  if(S.mode==='combat'){const e=r.enemy;
+    c.push({l:'攻擊',a:'atk',c:'danger'},{l:'防禦',a:'def'},{l:p.cd>0?`${RO().skill}（${p.cd}）`:`技能：${RO().skill}`,a:'skill',c:'special'});
+    const seen=new Set();p.inv.forEach((x,i)=>{if(['potion','big','bomb','elixir'].includes(x.k)||(x.k==='token'&&e.boss)){if(seen.has(x.n))return;seen.add(x.n);c.push({l:`使用 ${x.n}`,a:'item',arg:i});}});
+    if(!e.boss)c.push({l:'逃跑',a:'flee'});return c;}
+  if(S.mode==='postboss'){c.push({l:`摧毀${I().artifact}`,a:'destroy',c:'special'},{l:`將${I().artifact}據為己有`,a:'claim',c:'danger'});return c;}
+  if(S.mode==='npc'){const n=S.npcs[S.ctx.npc];c.push({l:'打聽情報',a:'ask'});c.push({l:n.done?'問候近況':(hasName(n.want)>=0?`交出「${n.want}」`:'有什麼需要幫忙的嗎？'),a:'quest',c:(!n.done&&hasName(n.want)>=0)?'special':''});c.push({l:'告別',a:'bye'});return c;}
+  if(S.mode==='event'){const ev=r.event;
+    if(S.ctx.ev==='trap')return [{l:'小心拆除',a:'disarm'},{l:'強行通過',a:'force',c:'danger'},{l:'退回原處',a:'back'}];
+    if(S.ctx.ev==='riddle'){ev.o.forEach((o,i)=>c.push({l:`回答「${o}」`,a:'answer',arg:i}));c.push({l:'放棄',a:'giveup'});return c;}
+    if(S.ctx.ev==='shop'){ev.stock.forEach((s,i)=>{if(!s.sold)c.push({l:`購買 ${s.n}（${s.price} 金）`,a:'buy',arg:i});});c.push({l:'離開攤位',a:'leave'});return c;}
+    if(S.ctx.ev==='leave')return [{l:'是的，離開這裡',a:'go',c:'danger'},{l:'不，留下來',a:'stay'}];
+  }
+  // 探索
+  if(r.items.length)c.push({l:r.items.length>1?'拿取全部物品':`拿取 ${r.items[0].n}`,a:'take',c:'special'});
+  if(r.npc!==null)c.push({l:`與${S.npcs[r.npc].n}交談`,a:'talk'});
+  const ev=r.event;
+  if(ev&&!ev.done){if(ev.t==='shrine')c.push({l:`在${W().shrine}前祈禱`,a:'shrine'});if(ev.t==='chest')c.push({l:'打開箱子',a:'chest'});if(ev.t==='rest')c.push({l:'休息一下',a:'rest'});if(ev.t==='riddle')c.push({l:'研究牆上的謎題',a:'riddle'});}
+  if(ev&&ev.t==='merchant')c.push({l:'與商人交易',a:'shop'});
+  DK.forEach(d=>{const t=r.exits[d];if(t===undefined)return;const o=S.rooms[t];c.push({l:`前往 ${d}：${o.locked?'🔒 封印之門':o.visited?o.name:'未知區域'}`,a:'move',arg:d,c:'move'});});
+  c.push({l:'查看四周',a:'look'});
+  if(r.exit)c.push({l:`從${W().exit}離開`,a:'leave',c:'danger'});
+  return c;
+}
+let lastChoices=[];
+function renderChoices(){
+  refreshSide();const box=$('choices');lastChoices=getChoices();box.innerHTML='';
+  lastChoices.forEach((ch,i)=>{const b=document.createElement('button');b.className='choice '+(ch.c||'');b.innerHTML=(i<9?`<span class="k">${i+1}</span>`:'')+esc(ch.l);b.onclick=()=>choose(i);box.appendChild(b);});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function choose(i){
+  if(TW.cur||TW.q.length)skipTyping();
+  lastChoices=getChoices();const ch=lastChoices[i];if(!ch)return;say('> '+ch.l,'cmd');act(ch.a,ch.arg);
+}
+function act(a,arg){
+  if(a==='new'){quickNew();return;}
+  if(a==='load'){loadGame();return;}
+  if(a==='replay'){newGame(S.seed);return;}
+  if(!S)return;
+  const m=S.mode;
+  if(m==='combat'){combat(a,arg);}
+  else if(m==='postboss'){ending(a==='destroy'?'hero':'dark');}
+  else if(m==='npc'){npcAct(a);}
+  else if(m==='event'){eventAct(a,arg);}
+  else if(m==='explore'){
+    if(a==='move')move(arg);else if(a==='look')describe(room(),true);else if(a==='take')take(arg);else if(a==='talk')talk();
+    else if(['shrine','chest','rest'].includes(a))feature(a);
+    else if(a==='riddle'){S.mode='event';S.ctx={ev:'riddle'};say(`牆上刻著：${room().event.q}`,'special');}
+    else if(a==='shop'){S.mode='event';S.ctx={ev:'shop'};say(`${W().merchant}：「看看吧，都是好東西。」你身上有 ${S.p.gold} 金幣。`,'npc');}
+    else if(a==='leave'){S.mode='event';S.ctx={ev:'leave'};say(has('treasure')>=0?`你帶著${I().treasure}站在${W().exit}前。只要踏出一步，你就能過上富足的生活——但${W().villain}。`:`你站在${W().exit}前。現在離開，你將一無所有，而${W().villain}。`,'warn');say('真的要離開嗎？');}
+    else if(a==='useidx'){useItem(arg);}
+  }
+  sync();pump();
+}
+
+/* ========== 指令解析 ========== */
+function parseDir(s){s=(s||'').trim().toLowerCase();if(DIRS[s])return s;if(DIR_ALIAS[s])return DIR_ALIAS[s];for(const d of DK)if(s.includes(d))return d;return null;}
+function findInv(name){const p=S.p;if(!name)return -1;let i=p.inv.findIndex(x=>x.n===name);if(i<0)i=p.inv.findIndex(x=>x.n.includes(name)||name.includes(x.n));return i;}
+function command(raw){
+  const t=raw.trim();if(!t)return;
+  if(TW.cur||TW.q.length)skipTyping();
+  if(/^\d+$/.test(t)){const i=+t-1;if(lastChoices[i]){choose(i);return;}}
+  say('> '+t,'cmd');
+  const verbs=[['前往','go'],['移動','go'],['走','go'],['去','go'],['go','go'],['查看','look'],['觀察','look'],['看','look'],['look','look'],['背包','inv'],['物品','inv'],['inv','inv'],['使用','use'],['用','use'],['裝備','use'],['喝','use'],['use','use'],['拿取','take'],['撿起','take'],['撿','take'],['拿','take'],['take','take'],['交談','talk'],['對話','talk'],['說話','talk'],['talk','talk'],['攻擊','atk'],['打','atk'],['防禦','def'],['技能','skill'],['逃跑','flee'],['逃','flee'],['狀態','stat'],['地圖','map'],['說明','help'],['幫助','help'],['help','help'],['存檔','save'],['讀檔','load'],['離開','leave'],['新冒險','new']];
+  let v=null,arg='';
+  for(const [k,val] of verbs){if(t.toLowerCase().startsWith(k)){v=val;arg=t.slice(k.length).trim();break;}}
+  const dir=parseDir(t);if(!v&&dir&&t.length<=4){v='go';arg=dir;}
+  if(!S){if(v==='load')loadGame();else quickNew();return;}
+  const m=S.mode;
+  if(v==='help'){showHelpText();return done();}
+  if(v==='stat'){const p=S.p;say(`${S.hero}（${RO().n}）　生命 ${p.hp}/${p.mhp}　等級 ${p.lv}　攻擊 ${patk()}　防禦 ${pdef()}　金幣 ${p.gold}`,'sys');return done();}
+  if(v==='inv'){say(S.p.inv.length?`背包：${S.p.inv.map(x=>x.n+((S.p.weapon===x||S.p.armor===x)?'（裝備中）':'')).join('、')}`:'你的背包空空如也。','sys');return done();}
+  if(v==='save'){saveGame();return done();}
+  if(v==='load'){loadGame();return;}
+  if(v==='new'){quickNew();return;}
+  if(v==='map'){const r=room();say(`你在「${r.name}」。已探索 ${S.rooms.filter(x=>x.visited).length}/${S.rooms.length} 個區域。`,'sys');return done();}
+  if(m==='combat'){
+    if(v==='atk')return act('atk');if(v==='def')return act('def');if(v==='skill')return act('skill');if(v==='flee')return act('flee');
+    if(v==='use'){const i=findInv(arg);if(i<0){say(`你沒有「${arg}」。`,'sys');return done();}return act('item',i);}
+    if(v==='look'){const e=room().enemy;say(`${e.n}：生命 ${Math.max(0,e.hp)}/${e.mhp}，攻擊 ${e.atk}，防禦 ${e.def}${e.charging?'（正在蓄力！）':''}`,'sys');return done();}
+  }
+  if(m==='explore'){
+    if(v==='go'){const d=parseDir(arg);if(!d){say('要往哪個方向？（北／南／東／西）','sys');return done();}return act('move',d);}
+    if(v==='look')return act('look');if(v==='take')return act('take',arg);if(v==='talk')return act('talk');
+    if(v==='use'){const i=findInv(arg);if(i<0){say(arg?`你沒有「${arg}」。`:'要使用什麼？例如：使用 '+I().potion,'sys');return done();}return act('useidx',i);}
+    if(v==='leave'&&room().exit)return act('leave');
+  }
+  // 嘗試比對選項文字
+  const k=lastChoices.findIndex(c=>c.l.includes(t)||(t.length>=2&&c.l.replace(/\s/g,'').includes(t.replace(/\s/g,''))));
+  if(k>=0){act(lastChoices[k].a,lastChoices[k].arg);return;}
+  say(m==='combat'?'戰鬥中只能：攻擊、防禦、技能、使用 物品、逃跑。':'我不太明白。輸入「說明」查看可用的指令。','sys');done();
+}
+function done(){sync();pump();}
+function showHelpText(){say('指令：前往 北／南／東／西（或直接輸入方向）、查看、背包、拿取 [物品]、使用 物品、交談、攻擊、防禦、技能、逃跑、狀態、地圖、存檔、讀檔、說明。也可以輸入選項編號。','sys');}
+
+/* ========== 側邊欄 ========== */
+function refreshSide(){
+  if(!S){$('hero').innerHTML='<span class="empty">尚未開始冒險</span>';$('inv').innerHTML='';$('map').innerHTML='';renderEndings();return;}
+  const p=S.p,ro=RO(),r=room();
+  $('locName').textContent=`${W().name}・${r.name}`;
+  $('locInfo').textContent=`回合 ${S.turn}`;
+  $('hero').innerHTML=`<b>${esc(S.hero)}</b>　${ro.n}　Lv.${p.lv}
+    <div class="bar"><i style="width:${Math.max(0,p.hp/p.mhp*100)}%"></i></div>
+    <div class="small">生命 ${Math.max(0,p.hp)} / ${p.mhp}</div>
+    <div class="bar xp"><i style="width:${p.xp/(p.lv*20)*100}%"></i></div>
+    <div class="stats"><span>攻擊 <b>${patk()}</b></span><span>防禦 <b>${pdef()}</b></span><span>金幣 <b>${p.gold}</b></span><span>經驗 <b>${p.xp}/${p.lv*20}</b></span>
+    <span>武器 <b>${p.weapon?esc(p.weapon.n):'無'}</b></span><span>防具 <b>${p.armor?esc(p.armor.n):'無'}</b></span>
+    <span style="grid-column:span 2">技能 <b>${ro.skill}</b>${p.cd>0?`（冷卻 ${p.cd}）`:'（就緒）'}</span></div>
+    ${S.mode==='combat'&&r.enemy?`<div style="margin-top:10px;color:var(--danger)">⚔ ${esc(r.enemy.n)}</div><div class="bar"><i style="width:${Math.max(0,r.enemy.hp/r.enemy.mhp*100)}%;background:linear-gradient(90deg,#5b2a8a,#b04ad8)"></i></div><div class="small">生命 ${Math.max(0,r.enemy.hp)} / ${r.enemy.mhp}${r.enemy.charging?'　<span style="color:#f0a24a">蓄力中！</span>':''}</div>`:''}`;
+  const inv=$('inv');inv.innerHTML='';
+  if(!p.inv.length)inv.innerHTML='<li class="empty">空空如也</li>';
+  const grp={};p.inv.forEach((x,i)=>{(grp[x.n]=grp[x.n]||{x,i,c:0}).c++;});
+  const label={potion:'回復',big:'大回復',bomb:'戰鬥用',elixir:'強化',weapon:'武器',armor:'防具',key:'鑰匙',treasure:'寶物',token:'信物',quest:'委託'};
+  Object.values(grp).forEach(g=>{const li=document.createElement('li');const eq=(p.weapon===g.x||p.armor===g.x)?'・裝備中':'';li.innerHTML=`<span>${esc(g.x.n)}${g.c>1?' ×'+g.c:''}</span><em>${label[g.x.k]||''}${eq}</em>`;li.title='點擊使用';li.onclick=()=>{if(S.mode==='combat'){say('> 使用 '+g.x.n,'cmd');act('item',g.i);}else if(S.mode==='explore'){say('> 使用 '+g.x.n,'cmd');act('useidx',g.i);}};inv.appendChild(li);});
+  renderMap();renderEndings();
+  $('seedShow').textContent=S.seed;
+}
+function renderMap(){
+  const rs=S.rooms,known=new Set();rs.forEach(r=>{if(r.visited){known.add(r.id);DK.forEach(d=>{if(r.exits[d]!==undefined)known.add(r.exits[d]);});}});
+  const ks=[...known].map(i=>rs[i]);if(!ks.length){$('map').innerHTML='';return;}const minX=Math.min(...ks.map(r=>r.x)),maxX=Math.max(...ks.map(r=>r.x)),minY=Math.min(...ks.map(r=>r.y)),maxY=Math.max(...ks.map(r=>r.y));
+  const W_=(maxX-minX)*2+1,H=(maxY-minY)*2+1;const cells=Array(W_*H).fill('<div></div>');
+  ks.forEach(r=>{const cx=(r.x-minX)*2,cy=(r.y-minY)*2;let cls='rm'+(r.visited?'':' seen')+(r.id===S.cur?' cur':'');let ic=r.id===S.cur?'●':(!r.visited?'?':r.boss?'☠':r.exit?'⇱':r.npc!==null?'☺':r.event&&r.event.t==='merchant'?'$':'');
+    cells[cy*W_+cx]=`<div class="${cls}" title="${r.visited?esc(r.name):'未知'}">${ic}</div>`;
+    if(r.visited){if(r.exits['東']!==undefined)cells[cy*W_+cx+1]='<div class="h"></div>';if(r.exits['南']!==undefined)cells[(cy+1)*W_+cx]='<div class="v"></div>';}
+    if(r.exits['西']!==undefined&&r.visited)cells[cy*W_+cx-1]='<div class="h"></div>';if(r.exits['北']!==undefined&&r.visited)cells[(cy-1)*W_+cx]='<div class="v"></div>';});
+  const m=$('map');m.style.gridTemplateColumns=`repeat(${W_},22px)`;m.innerHTML=cells.join('');
+  $('mapNote').textContent=`已探索 ${rs.filter(r=>r.visited).length} / ${rs.length}　● 你　☺ 人物　$ 商人　⇱ 出口　☠ 首領`;
+}
+function renderEndings(){const got=getEndings();$('endings').innerHTML=`${got.length} / 6<br>`+Object.entries(ENDINGS).map(([k,v])=>`<span class="${got.includes(k)?'got':'no'}">${got.includes(k)?'✦ '+v:'？？？'}</span>`).join('');}
+
+/* ========== 存檔 ========== */
+function saveGame(){if(!S)return;sync();if(S.mode==='ending'){say('冒險已經結束，無法存檔。','sys');return;}store.set('ta_save',JSON.stringify(S));say(store.persistent()?'✦ 進度已儲存。':'✦ 進度已暫存（此環境無法永久儲存，關閉頁面後會消失）。','sys');toast('已存檔');}
+function loadGame(){
+  const raw=store.get('ta_save');if(!raw){toast('沒有找到存檔');if(S)say('沒有找到存檔。','sys');return;}
+  try{S=JSON.parse(raw);}catch(e){toast('存檔損毀');return;}
+  // 還原物件參照（武器、防具指向背包中的物品）
+  const p=S.p;if(p.weapon)p.weapon=p.inv.find(x=>x.k==='weapon'&&x.n===p.weapon.n)||p.weapon;if(p.armor)p.armor=p.inv.find(x=>x.k==='armor'&&x.n===p.armor.n)||p.armor;
+  RG=new RNG(S.rs);clearLog();applyTheme();
+  const old=TW.speed;TW.speed=3;S.log.slice(-30).forEach(l=>{const el=document.createElement('p');if(l.c)el.className=l.c;el.textContent=l.t;$('log').appendChild(el);});TW.speed=old;
+  say('✦ 已讀取存檔。','sys');toast('已讀檔');pump();
+}
+
+/* ========== 介面事件 ========== */
+function quickNew(){try{const m=$('mNew');if(m)m.classList.remove('show');newGame(randomSeed());}catch(e){showError(e.message);console.error(e);}return false;}
+window.__taNew=quickNew;
+function openNew(){$('inSeed').value='';$('mNew').classList.add('show');setTimeout(()=>$('inSeed').focus(),50);}
+function startFromModal(){try{
+  let s=$('inSeed').value.trim().replace(/@\d\d$/,'')||randomSeed();const w=$('inWorld').value,r=$('inRole').value;
+  if(w!==''||r!==''){const g=new RNG(hashSeed(s));const wi=w!==''?+w:g.int(0,WORLDS.length-1);const ri=r!==''?+r:g.int(0,ROLES.length-1);s=`${s}@${wi}${ri}`;}
+  $('mNew').classList.remove('show');newGame(s);
+}catch(e){showError(e.message);console.error(e);}}
+function init(){
+  try{$('inWorld').innerHTML='<option value="">隨機</option>'+WORLDS.map((w,i)=>`<option value="${i}">${w.name}</option>`).join('');
+  $('inRole').innerHTML='<option value="">隨機</option>'+ROLES.map((r,i)=>`<option value="${i}">${r.n}</option>`).join('');}catch(e){console.error(e);}
+  const bind=(id,fn)=>{try{const el=$(id);if(el)el.onclick=fn;}catch(e){console.error(e);}};
+  bind('bNew',quickNew);bind('bCustom',openNew);bind('mCancel',()=>$('mNew').classList.remove('show'));bind('mGo',startFromModal);
+  $('inSeed').addEventListener('keydown',e=>{if(e.key==='Enter')startFromModal();});
+  $('bSave').onclick=()=>{saveGame();pump();};$('bLoad').onclick=loadGame;
+  $('bHelp').onclick=()=>$('mHelp').classList.add('show');$('hClose').onclick=()=>$('mHelp').classList.remove('show');
+  const sb=$('bSpeed');const upd=()=>sb.textContent='文字速度：'+SPEEDS[TW.speed].n;upd();
+  sb.onclick=()=>{TW.speed=(TW.speed+1)%SPEEDS.length;store.set('ta_speed',TW.speed);upd();};
+  $('log').addEventListener('click',()=>{if(TW.cur||TW.q.length)skipTyping();});
+  const runCmd=()=>{try{const v=$('cmd').value;$('cmd').value='';command(v);}catch(e){console.error(e);showError(e.message);}};
+  $('cmd').setAttribute('autocomplete','off');
+  $('cmd').addEventListener('keydown',e=>{if(e.key==='Enter'||e.keyCode===13){e.preventDefault();runCmd();}});
+  bind('bRun',runCmd);
+  $('seedShow').onclick=()=>{if(S)copyText(S.seed);};
+  document.addEventListener('keydown',e=>{
+    if(document.activeElement===$('cmd')||document.querySelector('.modal.show'))return;
+    if(e.key===' '&&(TW.cur||TW.q.length)){e.preventDefault();skipTyping();return;}
+    if(/^[1-9]$/.test(e.key)&&!TW.cur&&!TW.q.length){choose(+e.key-1);}
+  });
+  say('無盡迴廊','title');
+  say('在這裡，每一場冒險都是由命運的種子隨機編織而成的：不同的世界、不同的你、不同的敵人與結局。','');
+  say('準備好了嗎？','sys');
+}
+window.TA={get S(){return S;},getChoices,choose,command,newGame,setSpeed(i){TW.speed=i;},saveGame,loadGame,ENDINGS,store};
+function boot(){try{init();}catch(e){console.error(e);showError(e.message);
+  try{$('bNew').onclick=quickNew;$('bCustom').onclick=openNew;$('mGo').onclick=startFromModal;}catch(e2){}}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+</script>
+</body>
+</html>
